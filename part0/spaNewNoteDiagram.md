@@ -10,4 +10,7 @@ sequenceDiagram
     Note right of server: add the note data in the notes array
 
 
+    server-->>browser: Return 201 status code
+    deactivate server
+
 ```
