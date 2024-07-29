@@ -4,6 +4,7 @@ import Numbers from './components/Numbers'
 import PersonForm from './components/PersonForm'
 import Filter from './components/Filter'
 import personService from './services/persons'
+import Notification from './components/Notification'
 
 
 
@@ -13,6 +14,7 @@ const App = () => {
   const [newName, setNewName] = useState('');
   const [newNumber, setNewNumber] = useState('');
   const [filterValue, setFilterValue] = useState('');
+  const [notifMessage, setNotifMessage] = useState({message: null, className: null});
 
   const hook = () => {
     personService.getAll()
@@ -35,6 +37,12 @@ const App = () => {
     setFilterValue(event.target.value);
   };
 
+  const showNotif = (message, className) => {
+    console.log(`In showNotif ${message}, ${className}`);
+    setNotifMessage({message: message, className: className});
+    setTimeout(() => setNotifMessage({message: null, className: null}), 5000);
+  }
+
   const addPhone = (event) => {
     event.preventDefault();
     if (newName.length === 0 || newNumber.length === 0) {
@@ -49,6 +57,7 @@ const App = () => {
             setPersons(persons.map(p => p.id === updatedPerson.id ? updatedPerson : p));
             setNewName('');
             setNewNumber('');
+            showNotif(`Updating info for ${newName}`, 'notif');
           });
       }
       else {
@@ -57,6 +66,7 @@ const App = () => {
             setPersons(persons.concat(createdPerson));
             setNewName('');
             setNewNumber('');
+            showNotif(`Adding ${newName} to phonebook`, 'notif');
           });
       }
     }
@@ -70,7 +80,8 @@ const App = () => {
             setPersons(persons.filter(p => p.id !== person.id))
           })
           .catch(error => {
-            console.log('error');
+            showNotif(`Info on ${person.name} is already deleted from the server`, 'error')
+            setPersons(persons.filter(p => p.id !== person.id))
           });
       }
     }
@@ -80,6 +91,7 @@ const App = () => {
     return (
       <div>
         <h2>Phonebook</h2>
+        <Notification message={notifMessage.message} className={notifMessage.className} />
         <Filter filterValue={filterValue} handleFilterChange={handleFilterChange} />
 
         <h2>add a new</h2>
