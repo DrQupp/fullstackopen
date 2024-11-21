@@ -14,7 +14,7 @@ const App = () => {
   const [newName, setNewName] = useState('');
   const [newNumber, setNewNumber] = useState('');
   const [filterValue, setFilterValue] = useState('');
-  const [notifMessage, setNotifMessage] = useState({message: null, className: null});
+  const [notifMessage, setNotifMessage] = useState({ message: null, className: null });
 
   const hook = () => {
     personService.getAll()
@@ -39,8 +39,8 @@ const App = () => {
 
   const showNotif = (message, className) => {
     console.log(`In showNotif ${message}, ${className}`);
-    setNotifMessage({message: message, className: className});
-    setTimeout(() => setNotifMessage({message: null, className: null}), 5000);
+    setNotifMessage({ message: message, className: className });
+    setTimeout(() => setNotifMessage({ message: null, className: null }), 5000);
   }
 
   const addPhone = (event) => {
@@ -67,46 +67,50 @@ const App = () => {
             setNewName('');
             setNewNumber('');
             showNotif(`Adding ${newName} to phonebook`, 'notif');
-          });
+          })
+          .catch(error => {
+            console.log(error.response.data)
+            showNotif(error.response.data, 'error')
+          })
       }
     }
   };
 
-    const handleDelete = (person) => {
-      if (confirm(`Are you sure you want to delete ${person.name}?`)) {
-        personService
-          .deletePerson(person.id)
-          .then(() => {
-            setPersons(persons.filter(p => p.id !== person.id))
-          })
-          .catch(error => {
-            showNotif(`Info on ${person.name} is already deleted from the server`, 'error')
-            setPersons(persons.filter(p => p.id !== person.id))
-          });
-      }
+  const handleDelete = (person) => {
+    if (confirm(`Are you sure you want to delete ${person.name}?`)) {
+      personService
+        .deletePerson(person.id)
+        .then(() => {
+          setPersons(persons.filter(p => p.id !== person.id))
+        })
+        .catch(error => {
+          showNotif(`Info on ${person.name} is already deleted from the server`, 'error')
+          setPersons(persons.filter(p => p.id !== person.id))
+        });
     }
-
-    const personsToShow = filterValue.length === 0 ? persons : persons.filter(person => person.name.toLowerCase().includes(filterValue.toLowerCase()))
-
-    return (
-      <div>
-        <h2>Phonebook</h2>
-        <Notification message={notifMessage.message} className={notifMessage.className} />
-        <Filter filterValue={filterValue} handleFilterChange={handleFilterChange} />
-
-        <h2>add a new</h2>
-        <PersonForm
-          addPhone={addPhone}
-          newName={newName}
-          newNumber={newNumber}
-          handleNameChange={handleNameChange}
-          handleNumberChange={handleNumberChange}
-        />
-
-        <h2>Numbers</h2>
-        <Numbers persons={personsToShow} deleteButton={handleDelete} />
-      </div>
-    )
   }
 
-  export default App
+  const personsToShow = filterValue.length === 0 ? persons : persons.filter(person => person.name.toLowerCase().includes(filterValue.toLowerCase()))
+
+  return (
+    <div>
+      <h2>Phonebook</h2>
+      <Notification message={notifMessage.message} className={notifMessage.className} />
+      <Filter filterValue={filterValue} handleFilterChange={handleFilterChange} />
+
+      <h2>add a new</h2>
+      <PersonForm
+        addPhone={addPhone}
+        newName={newName}
+        newNumber={newNumber}
+        handleNameChange={handleNameChange}
+        handleNumberChange={handleNumberChange}
+      />
+
+      <h2>Numbers</h2>
+      <Numbers persons={personsToShow} deleteButton={handleDelete} />
+    </div>
+  )
+}
+
+export default App
