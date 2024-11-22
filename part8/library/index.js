@@ -8,15 +8,13 @@ mongoose.set('strictQuery', false)
 const Book = require('./models/book')
 const Author = require('./models/author')
 const User = require('./models/user')
+const Genre = require('./models/genre')
 require('dotenv').config()
 const jwt = require('jsonwebtoken')
 
 const MONGODB_URI = process.env.MONGODB_URI
 
 console.log('connecting to', MONGODB_URI)
-
-const books = []
-const authors = []
 
 mongoose
   .connect(MONGODB_URI)
@@ -32,7 +30,7 @@ const typeDefs = `
     title: String!
     author: Author!
     published: Int!
-    genres: [String!]!
+    genres: [Genre!]!
     id: ID!
   }
   
@@ -44,8 +42,12 @@ const typeDefs = `
 
   type User {
     username: String!
-    favoriteGenre: String!
+    favoriteGenre: Genre!
     id: ID!
+  }
+
+  type Genre {
+    name: String!
   }
 
   type Token {
@@ -57,6 +59,7 @@ const typeDefs = `
     authorCount: Int!
     allBooks(author: String, genre: String): [Book!]!
     allAuthors: [Author!]!
+    allGenres: [Genre!]!
     me: User
   }
 
@@ -85,24 +88,47 @@ const typeDefs = `
   }
 `
 
+const addGenre = async (genreName) => {
+  const genre = new Genre({
+    name: genreName
+  })
+  try {
+    await genre.save()
+  }
+  catch (error) {
+    throw new GraphQLError('Saving genre failed', {
+      extensions: {
+        code: 'BAD_USER_INPUT',
+        invalidArgs: genreName,
+        error
+      }
+    })
+  }
+  return genre
+}
+
 const resolvers = {
   Query: {
     bookCount: async () => Book.collection.countDocuments(),
     authorCount: async () => Author.collection.countDocuments(),
     allBooks: async (root, args) => {
+      var findCondition = {}
       if (args.genre && args.author) {
         const author = await Author.findOne({ name: args.author })
-        return await Book.find({ author, genres: args.genre })
+        const genre = await Genre.findOne({ name: args.genre })
+        findCondition = { author, genres: genre }
       } else if (args.author) {
         const author = await Author.findOne({ name: args.author })
-        return await Book.find({ author })
+        findCondition = { author }
       } else if (args.genre) {
-        return await Book.find({ genres: args.genre })
-      } else {
-        return await Book.find({})
+        const genre = await Genre.findOne({ name: args.genre })
+        findCondition = { genres: genre }
       }
+      const books = await Book.find(findCondition).populate('genres').populate('author')
+      return books
     },
     allAuthors: async () => await Author.find({}),
+    allGenres: async () => await Genre.find({}),
     me: (root, args, context) => {
       return context.currentUser
     }
@@ -138,10 +164,19 @@ const resolvers = {
         }
       }
 
+      var genres = []
+      await Promise.all(args.genres.map(async (g) => {
+        var genre = await Genre.findOne({ name: g })
+        if (!genre) {
+          genre = await addGenre(g)
+        }
+        genres = genres.concat(genre)
+      }))
+
       const book = new Book({
         title: args.title,
         published: args.published,
-        genres: args.genres,
+        genres: genres,
         author: author
       })
 
@@ -177,9 +212,13 @@ const resolvers = {
       return newAuthor
     },
     createUser: async (root, args) => {
+      var favoriteGenre = await Genre.findOne({name: args.favoriteGenre})
+      if (!favoriteGenre) {
+        favoriteGenre = await addGenre(args.favoriteGenre)
+      }
       const user = new User({
         username: args.username,
-        favoriteGenre: args.favoriteGenre
+        favoriteGenre: favoriteGenre
       })
       return user.save().catch((error) => {
         throw new GraphQLError('Creating the user failed', {
@@ -222,7 +261,7 @@ startStandaloneServer(server, {
     const auth = req ? req.headers.authorization : null
     if (auth && auth.startsWith('Bearer ')) {
       const decodedToken = jwt.verify(auth.substring(7), process.env.JWT_SECRET)
-      const currentUser = await User.findById(decodedToken.id)
+      const currentUser = await User.findById(decodedToken.id).populate('favoriteGenre')
       return { currentUser }
     }
   }

@@ -1,53 +1,46 @@
 import { useQuery } from '@apollo/client'
-import { ALL_BOOKS, ALL_GENRES } from '../queries'
+import { ALL_BOOKS, FAVORITE_GENRE } from '../queries'
 import { useEffect, useState } from 'react'
 
-const GenreSelector = ({ genres, bookQuery }) => {
-  return (
-    <div>
-      {genres.map((genre) => (
-        <button
-          key={genre.name}
-          onClick={() => {
-            bookQuery.refetch({ genreFilter: genre.name })
-          }}
-        >
-          {genre.name}
-        </button>
-      ))}
-      <button onClick={() => bookQuery.refetch({genreFilter: null})}>all genres</button>
-    </div>
-  )
-}
-
-const Books = (props) => {
+const Recommended = (props) => {
   const [books, setBooks] = useState(null)
-  const result = useQuery(ALL_GENRES)
   const bookQuery = useQuery(ALL_BOOKS, {
+    variables: { genreFilter: props.favGenre},
+    onCompleted: (data) => {
+      console.log('bookQuery completed')
+      setBooks(data.allBooks)
+    },
     onError: (error) => {
       const messages = error.graphQLErrors.map((e) => e.message).join('\n')
-      console.log(messages)
+      props.setError(messages)
     }
   })
 
   useEffect(() => {
+    bookQuery.refetch({ genreFilter: props.favGenre })
+  }, [props.favGenre])
+
+  useEffect(() => {
     if (bookQuery.data) {
       setBooks(bookQuery.data.allBooks)
+      console.log('UPDATING RECOMMENDED BOOKS')
     }
   }, [bookQuery.data])
 
-  if (!props.show) {
+  if (!props.show || !props.favGenre) {
     return null
   }
 
-  if (bookQuery.loading || result.loading) {
+  if (bookQuery.loading || !books) {
     return <div>loading...</div>
   }
 
   return (
     <div>
-      <h2>books</h2>
-
+      <h2>reccomendations</h2>
+      <div>
+        books in your favorite genre <b>{props.favGenre}</b>
+      </div>
       <table>
         <tbody>
           <tr>
@@ -64,9 +57,8 @@ const Books = (props) => {
           ))}
         </tbody>
       </table>
-      <GenreSelector genres={result.data.allGenres} bookQuery={bookQuery} />
     </div>
   )
 }
 
-export default Books
+export default Recommended

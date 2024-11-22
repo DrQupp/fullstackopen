@@ -3,11 +3,15 @@ import { ALL_AUTHORS, EDIT_BORN } from '../queries'
 import Select from 'react-select'
 import { useState } from 'react'
 
-const AuthorForm = ({ authors }) => {
+const AuthorForm = ({ authors, setError }) => {
   const [born, setBorn] = useState('')
   const [name, setName] = useState(null)
   const [editBorn] = useMutation(EDIT_BORN, {
-    refetchQueries: [{ query: ALL_AUTHORS }]
+    refetchQueries: [{ query: ALL_AUTHORS }],
+    onError: (error) => {
+      const messages = error.graphQLErrors.map((e) => e.message).join('\n')
+      setError(messages)
+    }
   })
 
   const selectOptions = authors.map((author) => {
@@ -16,7 +20,6 @@ const AuthorForm = ({ authors }) => {
 
   const submit = async (event) => {
     event.preventDefault()
-    console.log(name)
     editBorn({ variables: { name: name.value, setBornTo: parseInt(born) } })
 
     setBorn('')
@@ -29,11 +32,7 @@ const AuthorForm = ({ authors }) => {
       <form onSubmit={submit}>
         <div>
           name
-          <Select
-            value={name}
-            onChange={setName}
-            options={selectOptions}
-          />
+          <Select value={name} onChange={setName} options={selectOptions} />
         </div>
         <div>
           born
@@ -79,7 +78,7 @@ const Authors = (props) => {
           ))}
         </tbody>
       </table>
-      <AuthorForm authors={authors} />
+      <AuthorForm authors={authors} setError={props.setError} />
     </div>
   )
 }
