@@ -74,7 +74,7 @@ const App = () => {
       <Notify errorMessage={errorMessage} />
       <Authors show={page === 'authors'} setError={notify} />
 
-      <Books show={page === 'books'} />
+      <Books show={page === 'books'} notify={notify} />
       <Recommended show={page === 'recommended' && token} setError={notify} favGenre={favoriteGenre}/>
 
       <NewBook show={page === 'add'} setError={notify} />
