@@ -21,6 +21,9 @@ const jwt = require('jsonwebtoken')
 const typeDefs = require('./schema')
 const resolvers = require('./resolvers')
 
+const loaders = require('./loaders')
+const bookCountLoader = require('./loaders')
+
 require('dotenv').config()
 const MONGODB_URI = process.env.MONGODB_URI
 
@@ -83,8 +86,9 @@ const start = async () => {
           const currentUser = await User.findById(decodedToken.id).populate(
             'favoriteGenre'
           )
-          return { currentUser }
+          return { currentUser, loaders: { bookCountLoader: loaders } }
         }
+        return { loaders: { bookCountLoader: loaders } }
       }
     })
   )

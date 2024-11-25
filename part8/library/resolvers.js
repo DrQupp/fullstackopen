@@ -8,6 +8,7 @@ const Genre = require('./models/genre')
 const User = require('./models/user')
 const jwt = require('jsonwebtoken')
 
+
 const addGenre = async (genreName) => {
   const genre = new Genre({
     name: genreName
@@ -55,9 +56,8 @@ const resolvers = {
     }
   },
   Author: {
-    bookCount: async (root) => {
-      const author = await Author.findOne({ name: root.name })
-      return await Book.countDocuments({ author })
+    bookCount: async (root, args, { loaders }) => {
+      return await loaders.bookCountLoader.load(root)
     }
   },
   Mutation: {
